@@ -122,13 +122,9 @@ namespace BootstrapBlazor.Shared.Samples
             RootPage.Update();
         }
 
-        [Inject]
-        [NotNull]
-        private IServiceProvider? Provider { get; set; }
-
         private Task OnNavigation()
         {
-            Navigator.NavigateTo(Provider, "layout-page1", "代码导航");
+            Navigator.NavigateTo("layout-page1");
             return Task.CompletedTask;
         }
     }
