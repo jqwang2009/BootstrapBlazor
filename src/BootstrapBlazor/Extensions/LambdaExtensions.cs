@@ -226,7 +226,26 @@ public static class LambdaExtensions
     /// <returns></returns>
     public static IEnumerable<TItem> Sort<TItem>(this IEnumerable<TItem> items, List<string> sortList)
     {
-        return items;
+        var ret = items;
+        if (sortList.Any())
+        {
+            foreach (var sortExp in sortList)
+            {
+                var segs = sortExp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var sortOrder = SortOrder.Asc;
+                var sortName = sortExp;
+                if (segs.Length == 2)
+                {
+                    sortName = segs[0];
+                    if (segs[1].Equals("desc", StringComparison.OrdinalIgnoreCase))
+                    {
+                        sortOrder = SortOrder.Desc;
+                    }
+                }
+                ret = ret.Sort<TItem>(sortName, sortOrder);
+            }
+        }
+        return ret;
     }
 
     /// <summary>
