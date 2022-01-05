@@ -10,7 +10,7 @@
     {
         if (ShowSkeleton)
         {
-            <SkeletonTable></SkeletonTable>
+            <SkeletonTable ShowToolbar="@ShowToolbar"></SkeletonTable>
         }
         else
         {
@@ -30,7 +30,7 @@
         <div class="table-toolbar">
             @if (IsExcel || ShowToolbar)
             {
-                <TableToolbar TItem="TItem" OnGetSelectedRows="@GetSelectedRows">
+                <TableToolbar OnGetSelectedRows="@GetSelectedRows">
                     @if (IsExcel || ShowDefaultButtons)
                     {
                         @if (ShowAddButton)
@@ -69,7 +69,7 @@
                                 <span class="d-none d-sm-inline-block">@ColumnButtonText</span>
                                 <span class="caret"></span>
                             </button>
-                            <div class="dropdown-menu dropdown-menu-right">
+                            <div class="dropdown-menu dropdown-menu-right shadow">
                                 @foreach (var item in Columns)
                                 {
                                     var poco = ColumnVisibles.First(i => i.FieldName == item.GetFieldName());
@@ -90,7 +90,7 @@
                                 <span class="d-none d-sm-inline-block">@ExportButtonText</span>
                                 <span class="caret"></span>
                             </button>
-                            <div class="dropdown-menu dropdown-menu-right">
+                            <div class="dropdown-menu dropdown-menu-right shadow">
                                 <div class="dropdown-item">
                                     <i class="fa fa-file-text-o"></i>
                                     <span>CSV （未实现）</span>
@@ -114,8 +114,11 @@
                     @if (ShowSearchText)
                     {
                         <div class="input-group">
-                            <BootstrapInput class="table-toolbar-search" placeholder="@SearchPlaceholderText" @bind-Value="@SearchText">
-                                <Tooltip Placement="Placement.Top" Title="@SearchTooltip" IsHtml="true" />
+                            <BootstrapInput class="table-toolbar-search" placeholder="@SearchPlaceholderText" @bind-Value="@SearchText" ShowLabel="false">
+                                @if (ShowSearchTextTooltip)
+                                {
+                                    <Tooltip Placement="Placement.Top" Title="@SearchTooltip" IsHtml="true" />
+                                }
                             </BootstrapInput>
                             <Button Color="@Color.Secondary" Icon="fa fa-search" OnClickWithoutRender="@SearchClick">
                                 <span class="d-none d-sm-inline-block">@SearchButtonText</span>
@@ -159,6 +162,10 @@
                     </div>
                     <div class="table-fixed-body scroll">
                         @RenderTable.Invoke(false)
+                        @if(IsShowEmpty)
+                        {
+                            @RenderEmpty()
+                        }
                     </div>
                 }
                 else if (FixedExtendButtonsColumn || Columns.Any(col => col.Fixed))
@@ -166,20 +173,17 @@
                     <div class="overflow-auto">
                         @RenderTable.Invoke(true)
                     </div>
+                    @if(IsShowEmpty)
+                    {
+                        @RenderEmpty()
+                    }
                 }
                 else
                 {
                     @RenderTable.Invoke(true)
-                }
-                if (!RowItems.Any() && ShowEmpty)
-                {
-                    if (EmptyTemplate != null)
+                    @if(IsShowEmpty)
                     {
-                        @EmptyTemplate
-                    }
-                    else
-                    {
-                        <Empty Text="@EmptyText" />
+                        @RenderEmpty()
                     }
                 }
             }
@@ -209,13 +213,31 @@
                         }
                         @foreach (var col in GetColumns())
                         {
+                            var cellClass = "";
+                            string? value = null;
                             <div class="table-cell">
                                 <label>
                                     @col.GetDisplayName()
                                 </label>
-                                <span>
-                                    @GetValue(col, item)
-                                </span>
+                                @if (col.OnCellRender != null)
+                                {
+                                    var args = new TableCellArgs { Row = item, ColumnName = col.GetFieldName() };
+                                    col.OnCellRender(args);
+                                    cellClass = args.Class;
+                                    value = args.Value;
+                                }
+                                @if(value == null)
+                                {
+                                    <span>
+                                        @GetValue(col, item)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="@cellClass">
+                                        @value
+                                    </span>
+                                }
                             </div>
                         }
                         @if (!IsExcel && ShowExtendButtons && !IsExtendButtonsInRowHeader)
@@ -316,16 +338,7 @@
                             <td>&nbsp;</td>
                             <td colspan="@colspan">
                                 <div class="table-cell is-wrap">
-                                    @if (DetailRows.Contains(item))
-                                    {
-                                        @DetailRowTemplate?.Invoke(item)
-                                    }
-                                    else
-                                    {
-                                        <div class="table-loading">
-                                            <Spinner Color="Color.Primary" />
-                                        </div>
-                                    }
+                                    @DetailRowTemplate?.Invoke(item)
                                 </div>
                             </td>
                         </tr>
@@ -599,7 +612,7 @@ RenderFragment<TItem> RenderRow => item =>
                                 class="@GetCellClassString(col, triggerClick, isInCell)" style="@GetCellStyleString(col)">
                     @if (showArrow)
                     {
-                        <div style="@GetTreeStyleString(item)">
+                        <div class="is-node" style="@GetTreeStyleString(item)">
                             <i class="@GetTreeClassString(item)"></i>
                         </div>
                     }
@@ -734,7 +747,9 @@ RenderFragment<TItem> RenderExtendButtons => item =>
                                   OnConfirm="DeleteAsync" />
             }
         }
-        @RowButtonTemplate?.Invoke(item)
+        <TableExtensionButton OnClickButton="args => OnClickExtensionButton(item, args)">
+            @RowButtonTemplate?.Invoke(item)
+        </TableExtensionButton>
     </span>
 </div>;
 
@@ -747,7 +762,9 @@ RenderFragment<TItem> RenderRowExtendButtons => item =>
             }
             @if (!isInCell)
             {
-                @BeforeRowButtonTemplate?.Invoke(item)
+                <TableExtensionButton OnClickButton="args => OnClickExtensionButton(item, args)">
+                    @BeforeRowButtonTemplate?.Invoke(item)
+                </TableExtensionButton>
             }
             @if (ShowDefaultButtons)
             {
@@ -773,16 +790,18 @@ RenderFragment<TItem> RenderRowExtendButtons => item =>
                 @if (!isInCell && GetShowDeleteButton(item))
                 {
                     <PopConfirmButton Placement="Placement.Left" Size="Size.ExtraSmall"
-                                        Color="Color.Danger" Icon="fa fa-remove" Text="@DeleteButtonText"
-                                        CloseButtonText="@CancelDeleteButtonText" Content="@ConfirmDeleteContentText"
-                                        ConfirmButtonColor="Color.Danger" ConfirmButtonText="@ConfirmDeleteButtonText"
-                                        OnBeforeClick="@ClickBeforeDelete(item)"
-                                        OnConfirm="DeleteAsync" />
+                                      Color="Color.Danger" Icon="fa fa-remove" Text="@DeleteButtonText"
+                                      CloseButtonText="@CancelDeleteButtonText" Content="@ConfirmDeleteContentText"
+                                      ConfirmButtonColor="Color.Danger" ConfirmButtonText="@ConfirmDeleteButtonText"
+                                      OnBeforeClick="@ClickBeforeDelete(item)"
+                                      OnConfirm="DeleteAsync" />
                 }
             }
             @if (!isInCell)
             {
-                @RowButtonTemplate?.Invoke(item)
+                <TableExtensionButton OnClickButton="args => OnClickExtensionButton(item, args)">
+                    @RowButtonTemplate?.Invoke(item)
+                </TableExtensionButton>
             }
         </div>
     </div>
@@ -800,7 +819,10 @@ RenderFragment RenderSearch =>
             {
                 <div class="input-group">
                     <BootstrapInput class="table-toolbar-search" placeholder="@SearchPlaceholderText" @bind-Value="@SearchText">
-                        <Tooltip Placement="Placement.Top" Title="@SearchTooltip" IsHtml="true" />
+                        @if (ShowSearchTextTooltip)
+                        {
+                            <Tooltip Placement="Placement.Top" Title="@SearchTooltip" IsHtml="true" />
+                        }
                     </BootstrapInput>
                     <Button Color="Color.Secondary" Icon="fa fa-search" OnClickWithoutRender="SearchClick">
                         <span class="d-none d-sm-inline-block">@SearchButtonText</span>

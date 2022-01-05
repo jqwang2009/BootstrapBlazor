@@ -905,3 +905,12 @@
 .tree .tree-item.active > .tree-content > .tree-node {
     color: #009ef7;
 }
+
+.card-header {
+    background-color: var(--bs-secondary);
+    border-color: var(--bs-secondary);
+}
+
+    .card-header:first-child {
+        border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;
+    }

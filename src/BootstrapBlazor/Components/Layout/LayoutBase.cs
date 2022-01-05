@@ -3,204 +3,268 @@
 // Website: https://www.blazor.zone or https://argozhang.github.io/
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace BootstrapBlazor.Components
+namespace BootstrapBlazor.Components;
+
+/// <summary>
+/// Layout 组件基类
+/// </summary>
+public abstract class LayoutBase : BootstrapComponentBase, IDisposable
 {
     /// <summary>
-    /// Layout 组件基类
+    /// 
     /// </summary>
-    public abstract class LayoutBase : BootstrapComponentBase
+    protected bool IsSmallScreen { get; set; }
+
+    /// <summary>
+    /// 获得/设置 侧边栏状态
+    /// </summary>
+    [Parameter]
+    public bool IsCollapsed { get; set; }
+
+    /// <summary>
+    /// 获得/设置 侧边栏状态
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> IsCollapsedChanged { get; set; }
+
+    /// <summary>
+    /// 获得/设置 Header 模板
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Header { get; set; }
+
+    /// <summary>
+    /// 获得/设置 Footer 模板
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+
+    /// <summary>
+    /// 获得/设置 Side 模板
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Side { get; set; }
+
+    /// <summary>
+    /// 获得/设置 NotAuthorized 模板
+    /// </summary>
+    [Parameter]
+    public RenderFragment? NotAuthorized { get; set; }
+
+    /// <summary>
+    /// 获得/设置 NotFound 模板
+    /// </summary>
+    [Parameter]
+    public RenderFragment? NotFound { get; set; }
+
+    /// <summary>
+    /// 获得/设置 NotFound 标签文本
+    /// </summary>
+    [Parameter]
+    [NotNull]
+    public string? NotFoundTabText { get; set; }
+
+    /// <summary>
+    /// 获得/设置 Footer 高度 支持百分比 默认宽度为 300px
+    /// </summary>
+    [Parameter]
+    public string SideWidth { get; set; } = "300";
+
+    /// <summary>
+    /// 获得/设置 Main 模板
+    /// </summary>
+    [Parameter]
+    [NotNull]
+    public RenderFragment? Main { get; set; }
+
+    /// <summary>
+    /// 获得/设置 侧边栏是否占满整个左侧 默认为 false
+    /// </summary>
+    [Parameter]
+    public bool IsFullSide { get; set; }
+
+    /// <summary>
+    /// 获得/设置 是否为正页面布局 默认为 false
+    /// </summary>
+    [Parameter]
+    public bool IsPage { get; set; }
+
+    /// <summary>
+    /// 获得/设置 侧边栏菜单集合
+    /// </summary>
+    [Parameter]
+    public IEnumerable<MenuItem>? Menus { get; set; }
+
+    /// <summary>
+    /// 获得/设置 是否右侧使用 Tab 组件 默认为 false 不使用
+    /// </summary>
+    [Parameter]
+    public bool UseTabSet { get; set; }
+
+    /// <summary>
+    /// 获得/设置 是否仅渲染 Active 标签
+    /// </summary>
+    [Parameter]
+    public bool IsOnlyRenderActiveTab { get; set; }
+
+    /// <summary>
+    /// 获得/设置 TabItem 显示文本字典 默认 null 未设置时取侧边栏菜单显示文本
+    /// </summary>
+    [Parameter]
+    [Obsolete("已弃用；请使用 [TabItemOptionAttribute] 标签替换此功能 详细说明见 更新日志 V6.2 https://gitee.com/LongbowEnterprise/BootstrapBlazor/wikis/%E6%9B%B4%E6%96%B0%E5%8E%86%E5%8F%B2/V6.2.0", true)]
+    public Dictionary<string, string>? TabItemTextDictionary { get; set; }
+
+    /// <summary>
+    /// 获得/设置 是否固定 Footer 组件
+    /// </summary>
+    [Parameter]
+    public bool IsFixedFooter { get; set; }
+
+    /// <summary>
+    /// 获得/设置 是否固定 Header 组件
+    /// </summary>
+    [Parameter]
+    public bool IsFixedHeader { get; set; }
+
+    /// <summary>
+    /// 获得/设置 是否显示收缩展开 Bar
+    /// </summary>
+    [Parameter]
+    public bool ShowCollapseBar { get; set; }
+
+    /// <summary>
+    /// 获得/设置 是否显示 Footer 模板
+    /// </summary>
+    [Parameter]
+    public bool ShowFooter { get; set; }
+
+    /// <summary>
+    /// 获得/设置 是否显示返回顶端按钮 默认为 false 不显示
+    /// </summary>
+    [Parameter]
+    public bool ShowGotoTop { get; set; }
+
+    /// <summary>
+    /// 获得/设置 点击菜单时回调委托方法 默认为 null
+    /// </summary>
+    [Parameter]
+    public Func<MenuItem, Task>? OnClickMenu { get; set; }
+
+    /// <summary>
+    /// 获得/设置 收缩展开回调委托
+    /// </summary>
+    [Parameter]
+    public Func<bool, Task>? OnCollapsed { get; set; }
+
+    /// <summary>
+    /// 获得/设置 默认标签页 关闭所以标签页时自动打开此地址 默认 null 未设置
+    /// </summary>
+    [Parameter]
+    public string TabDefaultUrl { get; set; } = "";
+
+    /// <summary>
+    /// 获得/设置 授权回调方法多用于权限控制
+    /// </summary>
+    [Parameter]
+    public Func<string, Task<bool>>? OnAuthorizing { get; set; }
+
+    /// <summary>
+    /// 获得/设置 未授权导航地址 默认为 "/Account/Login" Cookie 模式登录页
+    /// </summary>
+    [Parameter]
+    public string NotAuthorizeUrl { get; set; } = "/Account/Login";
+
+    [Inject]
+    [NotNull]
+    private NavigationManager? Navigation { get; set; }
+
+    /// <summary>
+    /// OnInitializedAsync 方法
+    /// </summary>
+    /// <returns></returns>
+    protected override void OnInitialized()
     {
-        /// <summary>
-        /// 
-        /// </summary>
-        protected bool IsSmallScreen { get; set; }
+        base.OnInitialized();
 
-        /// <summary>
-        /// 获得/设置 侧边栏状态
-        /// </summary>
-        [Parameter]
-        public bool IsCollapsed { get; set; }
-
-        /// <summary>
-        /// 获得/设置 侧边栏状态
-        /// </summary>
-        [Parameter]
-        public EventCallback<bool> IsCollapsedChanged { get; set; }
-
-        /// <summary>
-        /// 获得/设置 Header 模板
-        /// </summary>
-        [Parameter]
-        public RenderFragment? Header { get; set; }
-
-        /// <summary>
-        /// 获得/设置 Footer 模板
-        /// </summary>
-        [Parameter]
-        public RenderFragment? Footer { get; set; }
-
-        /// <summary>
-        /// 获得/设置 Side 模板
-        /// </summary>
-        [Parameter]
-        public RenderFragment? Side { get; set; }
-
-        /// <summary>
-        /// 获得/设置 NotAuthorized 模板
-        /// </summary>
-        [Parameter]
-        public RenderFragment? NotAuthorized { get; set; }
-
-        /// <summary>
-        /// 获得/设置 NotFound 模板
-        /// </summary>
-        [Parameter]
-        public RenderFragment? NotFound { get; set; }
-
-        /// <summary>
-        /// 获得/设置 NotFound 标签文本
-        /// </summary>
-        [Parameter]
-        [NotNull]
-        public string? NotFoundTabText { get; set; }
-
-        /// <summary>
-        /// 获得/设置 Footer 高度 支持百分比 默认宽度为 300px
-        /// </summary>
-        [Parameter]
-        public string SideWidth { get; set; } = "300";
-
-        /// <summary>
-        /// 获得/设置 Main 模板
-        /// </summary>
-        [Parameter]
-        [NotNull]
-        public RenderFragment? Main { get; set; }
-
-        /// <summary>
-        /// 获得/设置 侧边栏是否占满整个左侧 默认为 false
-        /// </summary>
-        [Parameter]
-        public bool IsFullSide { get; set; }
-
-        /// <summary>
-        /// 获得/设置 是否为正页面布局 默认为 false
-        /// </summary>
-        [Parameter]
-        public bool IsPage { get; set; }
-
-        /// <summary>
-        /// 获得/设置 侧边栏菜单集合
-        /// </summary>
-        [Parameter]
-        public IEnumerable<MenuItem>? Menus { get; set; }
-
-        /// <summary>
-        /// 获得/设置 是否右侧使用 Tab 组件 默认为 false 不使用
-        /// </summary>
-        [Parameter]
-        public bool UseTabSet { get; set; }
-
-        /// <summary>
-        /// 获得/设置 是否仅渲染 Active 标签
-        /// </summary>
-        [Parameter]
-        public bool IsOnlyRenderActiveTab { get; set; }
-
-        /// <summary>
-        /// 获得/设置 TabItem 显示文本字典 默认 null 未设置时取侧边栏菜单显示文本
-        /// </summary>
-        [Parameter]
-        public Dictionary<string, string>? TabItemTextDictionary { get; set; }
-
-        /// <summary>
-        /// 获得/设置 是否固定 Footer 组件
-        /// </summary>
-        [Parameter]
-        public bool IsFixedFooter { get; set; }
-
-        /// <summary>
-        /// 获得/设置 是否固定 Header 组件
-        /// </summary>
-        [Parameter]
-        public bool IsFixedHeader { get; set; }
-
-        /// <summary>
-        /// 获得/设置 是否显示收缩展开 Bar
-        /// </summary>
-        [Parameter]
-        public bool ShowCollapseBar { get; set; }
-
-        /// <summary>
-        /// 获得/设置 是否显示 Footer 模板
-        /// </summary>
-        [Parameter]
-        public bool ShowFooter { get; set; }
-
-        /// <summary>
-        /// 获得/设置 是否显示返回顶端按钮 默认为 false 不显示
-        /// </summary>
-        [Parameter]
-        public bool ShowGotoTop { get; set; }
-
-        /// <summary>
-        /// 获得/设置 点击菜单时回调委托方法 默认为 null
-        /// </summary>
-        [Parameter]
-        public Func<MenuItem, Task>? OnClickMenu { get; set; }
-
-        /// <summary>
-        /// 获得/设置 收缩展开回调委托
-        /// </summary>
-        [Parameter]
-        public Func<bool, Task>? OnCollapsed { get; set; }
-
-        /// <summary>
-        /// 获得/设置 默认标签页 关闭所以标签页时自动打开此地址 默认 null 未设置
-        /// </summary>
-        [Parameter]
-        public string TabDefaultUrl { get; set; } = "";
-
-        /// <summary>
-        /// 点击 收缩展开按钮时回调此方法
-        /// </summary>
-        /// <returns></returns>
-        protected async Task CollapseMenu()
+        if (OnAuthorizing != null)
         {
-            IsCollapsed = !IsCollapsed;
-            if (IsCollapsedChanged.HasDelegate)
-            {
-                await IsCollapsedChanged.InvokeAsync(IsCollapsed);
-            }
+            Navigation.LocationChanged += Navigation_LocationChanged;
+        }
+    }
 
-            if (OnCollapsed != null)
-            {
-                await OnCollapsed(IsCollapsed);
-            }
+    private async void Navigation_LocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        var auth = await OnAuthorizing!(e.Location);
+        if (!auth)
+        {
+            Navigation.NavigateTo(NotAuthorizeUrl, true);
+        }
+    }
+
+    /// <summary>
+    /// 点击 收缩展开按钮时回调此方法
+    /// </summary>
+    /// <returns></returns>
+    protected async Task CollapseMenu()
+    {
+        IsCollapsed = !IsCollapsed;
+        if (IsCollapsedChanged.HasDelegate)
+        {
+            await IsCollapsedChanged.InvokeAsync(IsCollapsed);
         }
 
-        /// <summary>
-        /// 点击菜单时回调此方法
-        /// </summary>
-        /// <returns></returns>
-        protected Func<MenuItem, Task> ClickMenu() => async item =>
+        if (OnCollapsed != null)
         {
-            // 小屏幕时生效
-            if (IsSmallScreen && !item.Items.Any())
-            {
-                await CollapseMenu();
-            }
+            await OnCollapsed(IsCollapsed);
+        }
+    }
 
-            if (OnClickMenu != null)
+    /// <summary>
+    /// 点击菜单时回调此方法
+    /// </summary>
+    /// <returns></returns>
+    protected Func<MenuItem, Task> ClickMenu() => async item =>
+    {
+        // 小屏幕时生效
+        if (IsSmallScreen && !item.Items.Any())
+        {
+            await CollapseMenu();
+        }
+
+        if (OnClickMenu != null)
+        {
+            await OnClickMenu(item);
+        }
+    };
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="disposing"></param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            if (OnAuthorizing != null)
             {
-                await OnClickMenu(item);
+                Navigation.LocationChanged -= Navigation_LocationChanged;
             }
-        };
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }
