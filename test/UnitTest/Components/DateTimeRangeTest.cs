@@ -220,14 +220,20 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
     }
 
     [Fact]
-    public void NextMonth_Ok()
+    public void UpdateValue_Ok()
     {
-        // 
         var cut = Context.RenderComponent<DateTimeRange>(builder =>
         {
-            builder.Add(a => a.Value, new DateTimeRangeValue { Start = DateTime.Now.AddDays(1), End = DateTime.Now.AddDays(30) });
+            builder.Add(a => a.Value, new DateTimeRangeValue());
         });
 
+        // 选择开始时间
+        cut.Find(".date-table .cell").Click();
+        // 选择结束时间
+        cut.FindAll(".date-table .cell").ElementAt(2).Click();
+
+        cut.Find(".date-table .cell").Click();
         cut.Find(".pick-panel-arrow-right").Click();
+        cut.FindAll(".date-table .cell").Last().Click();
     }
 }
