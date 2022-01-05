@@ -235,5 +235,10 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
         cut.Find(".date-table .cell").Click();
         cut.Find(".pick-panel-arrow-right").Click();
         cut.FindAll(".date-table .cell").Last().Click();
+
+        // 下一年
+        cut.FindAll(".picker-panel-icon-btn").Last().Click();
+        cut.Find(".date-table .cell").Click();
+        cut.FindAll(".date-table .cell").Last().Click();
     }
 }
