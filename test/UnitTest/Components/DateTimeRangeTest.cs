@@ -218,4 +218,16 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
         Assert.Equal(DateTime.Today.AddDays(-7), cut.Instance.Value.Start);
         Assert.Equal(DateTime.Today.AddDays(1).AddSeconds(-1), cut.Instance.Value.End);
     }
+
+    [Fact]
+    public void NextMonth_Ok()
+    {
+        // 
+        var cut = Context.RenderComponent<DateTimeRange>(builder =>
+        {
+            builder.Add(a => a.Value, new DateTimeRangeValue { Start = DateTime.Now.AddDays(1), End = DateTime.Now.AddDays(30) });
+        });
+
+        cut.Find(".pick-panel-arrow-right").Click();
+    }
 }
