@@ -131,15 +131,22 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
     public void OnConfirm_Ok()
     {
         var value = false;
-        var cut = Context.RenderComponent<DateTimeRange>(builder =>
+        var cut = Context.RenderComponent<DateTimeRange>(pb =>
         {
-            builder.Add(a => a.Value, new DateTimeRangeValue { Start = DateTime.Now, End = DateTime.Now.AddDays(30) });
-            builder.Add(a => a.OnConfirm, (e) =>
+            pb.Add(a => a.Value, new DateTimeRangeValue { Start = DateTime.Now, End = DateTime.MinValue });
+            pb.Add(a => a.ValueChanged, v => _ = v);
+            pb.Add(a => a.OnValueChanged, v => Task.CompletedTask);
+            pb.Add(a => a.OnConfirm, (e) =>
             {
                 value = true; return Task.CompletedTask;
             });
         });
+        // 选择开始未选择结束
+        cut.Find(".cell").Click();
+        cut.FindAll(".is-confirm").First(s => s.TextContent == "确定").Click();
 
+        // 选择时间大于当前时间
+        cut.FindAll(".date-table .cell").Last().Click();
         cut.FindAll(".is-confirm").First(s => s.TextContent == "确定").Click();
         Assert.True(value);
     }
