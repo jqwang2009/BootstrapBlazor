@@ -20,11 +20,21 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
     {
         var cut = Context.RenderComponent<DateTimeRange>(builder =>
         {
-            builder.Add(a => a.Value, new DateTimeRangeValue { Start = DateTime.Now, End = DateTime.Now.AddDays(30) });
+            builder.Add(a => a.Value, new DateTimeRangeValue());
             builder.Add(a => a.ClearButtonText, "Clear");
         });
-
         Assert.Equal("Clear", cut.Find(".is-clear").TextContent);
+    }
+
+    [Fact]
+    public void StarEqualEnd_Ok()
+    {
+        var cut = Context.RenderComponent<DateTimeRange>(builder =>
+        {
+            builder.Add(a => a.Value, new DateTimeRangeValue() { Start = DateTime.Today, End = DateTime.Today });
+        });
+
+        // 内部 StartValue 自动减一个月
     }
 
     [Fact]
@@ -36,8 +46,7 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
             builder.Add(a => a.TodayButtonText, "Today");
             builder.Add(a => a.ShowToday, true);
         });
-        var today = cut.FindAll("button").Select(s => s.TextContent == "Today");
-
+        var today = cut.FindAll("button").FirstOrDefault(s => s.TextContent == "Today");
         Assert.NotNull(today);
     }
 
@@ -50,8 +59,7 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
             builder.Add(a => a.ConfirmButtonText, "Confirm");
             builder.Add(a => a.ShowToday, true);
         });
-        var today = cut.FindAll("button").Select(s => s.TextContent == "Confirm");
-
+        var today = cut.FindAll("button").FirstOrDefault(s => s.TextContent == "Confirm");
         Assert.NotNull(today);
     }
 
@@ -132,7 +140,7 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
             });
         });
 
-        cut.FindAll(".is-confirm").FirstOrDefault(s => s.TextContent == "确定")?.Click();
+        cut.FindAll(".is-confirm").First(s => s.TextContent == "确定").Click();
         Assert.True(value);
     }
 
@@ -148,8 +156,7 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
                 value = true; return Task.CompletedTask;
             });
         });
-
-        cut.FindAll(".is-confirm").FirstOrDefault(s => s.TextContent == "清空")?.Click();
+        cut.FindAll(".is-confirm").First(s => s.TextContent == "清空").Click();
         Assert.True(value);
     }
 
@@ -162,8 +169,7 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
             builder.Add(a => a.Value, new DateTimeRangeValue { Start = DateTime.Now, End = DateTime.Now.AddDays(30) });
             builder.Add(a => a.OnValueChanged, v => { value = v; return Task.CompletedTask; });
         });
-
-        cut.FindAll(".is-confirm").FirstOrDefault(s => s.TextContent == "清空")?.Click();
+        cut.FindAll(".is-confirm").First(s => s.TextContent == "清空").Click();
     }
 
     [Fact]
@@ -175,8 +181,7 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
             builder.Add(a => a.Value, new DateTimeRangeValue { Start = DateTime.Now, End = DateTime.Now.AddDays(30) });
             builder.Add(a => a.ValueChanged, EventCallback.Factory.Create<DateTimeRangeValue>(this, v => { value = v; }));
         });
-
-        cut.FindAll(".is-confirm").FirstOrDefault(s => s.TextContent == "清空")?.Click();
+        cut.FindAll(".is-confirm").First(s => s.TextContent == "清空").Click();
     }
 
     [Fact]
@@ -187,10 +192,8 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
             builder.Add(a => a.Value, new DateTimeRangeValue { Start = DateTime.Now.AddDays(1), End = DateTime.Now.AddDays(30) });
             builder.Add(a => a.ShowToday, true);
         });
-
-        cut.FindAll(".is-confirm").FirstOrDefault(s => s.TextContent == "今天")?.Click();
-
-        Assert.Equal(DateTime.Now.ToString("yyyy-MM-dd"), cut.Instance.Value.Start.ToString("yyyy-MM-dd"));
+        cut.FindAll(".is-confirm").First(s => s.TextContent == "今天").Click();
+        Assert.Equal(DateTime.Today.Date, cut.Instance.Value.Start.Date);
     }
 
     [Fact]
@@ -202,7 +205,10 @@ public class DateTimeRangeTest : BootstrapBlazorTestBase
             builder.Add(a => a.ShowSidebar, true);
         });
 
-        cut.FindAll(".sidebar-item").FirstOrDefault(s => s.TextContent == "上个月")?.NextElementSibling?.Click();
-        //Assert.Equal("2021-11-01", cut.Instance.Value.Start.ToString("yyyy-MM-dd"));
+        cut.Find(".sidebar-item > div").Click();
+
+        // 得到最近一周时间范围
+        Assert.Equal(DateTime.Today.AddDays(-7), cut.Instance.Value.Start);
+        Assert.Equal(DateTime.Today.AddDays(1).AddSeconds(-1), cut.Instance.Value.End);
     }
 }
