@@ -606,7 +606,7 @@ public partial class Table<TItem>
     /// </summary>
     protected async Task DeleteAsync()
     {
-        if (IsExcel)
+        if (IsExcel || DynamicContext != null)
         {
             await DeleteDynamicObjectExcelModelAsync();
         }
