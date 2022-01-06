@@ -92,16 +92,6 @@ public partial class TablesDynamic
             }
         })
         {
-            //OnAddAsync = item =>
-            //{
-            //    var idString = UserData.Compute("Max(Id)", null).ToString();
-            //    if (int.TryParse(idString, out var id))
-            //    {
-            //        id++;
-            //        item.First().SetValue(nameof(Foo.Id), id);
-            //    }
-            //    return Task.CompletedTask;
-            //},
             OnDeleteAsync = items =>
             {
                 // 数据源中移除
@@ -119,6 +109,16 @@ public partial class TablesDynamic
                 }
                 UserData.AcceptChanges();
                 return Task.FromResult(true);
+            },
+            OnChanged = args =>
+            {
+                if (args.ChangedType == DynamicItemChangedType.Add)
+                {
+                    var item = args.Items.First();
+                    item.SetValue(nameof(Foo.DateTime), DateTime.Today);
+                    item.SetValue(nameof(Foo.Name), "新建值");
+                }
+                return Task.CompletedTask;
             }
         };
     }
